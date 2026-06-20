@@ -1,0 +1,5 @@
+alpha/
+.venv/
+build/
+cmake-build-*/
+.DS_Store
