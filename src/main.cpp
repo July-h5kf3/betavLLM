@@ -2,13 +2,14 @@
 #include <cublas_v2.h>
 #include <queue>
 #include <iostream>
+
 #define JSON_USE_IMPLICIT_CONVERSIONS 0
-#include "json.hpp"
 
-using json = nlohmann::json;
+#include "model_config.hpp"
 
-constexpr int B_TO_MB = 1024 * 1024;
-constexpr int  B_TO_GB = 1024 * 1024 * 1024;
+#include "model_loader.hpp"
+
+
 
 int checkGPUStatus()
 {
@@ -35,8 +36,15 @@ int checkGPUStatus()
     return 0;
 }
 
-int main()
+int main(int argc, char** argv)
 {
+    if(argc < 2)
+    {
+        std::cerr << "Usage: " << argv[0] << " <model.safetensors>\n";
+        retrun 1;
+    }
+
+    std::string model_path = argv[1];
     if(checkGPUStatus() != 0)
     {
         return 1;
@@ -48,4 +56,11 @@ int main()
         std::cerr << "cuBLAS init failed, status: " << status << "\n";
         return 1;
     }
+    Weights weights;
+    if(loadWeights(model_path, weights) != 0)
+    {
+        std::cerr<<"Load Weights failed \n";
+        return 1;
+    }
+    return 0;
 }

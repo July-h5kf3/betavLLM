@@ -8,6 +8,8 @@ CXXFLAGS := -std=c++17 -O2 -Wall -Wextra
 LDFLAGS := -L/usr/local/cuda/lib64
 LDLIBS := -lcudart -lcublas
 
+MODEL_PATH ?= model.safetensors
+
 $(TARGET): $(OBJ)
 	mkdir -p build
 	$(CXX) $(OBJ) -o $(TARGET) $(LDFLAGS) $(LDLIBS)
@@ -24,4 +26,4 @@ clean:
 .PHONY: all clean run
 
 run: $(TARGET)
-	./$(TARGET)
+	./$(TARGET) $(MODEL_PATH)
