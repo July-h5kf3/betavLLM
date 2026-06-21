@@ -8,7 +8,7 @@ CXXFLAGS := -std=c++17 -O2 -Wall -Wextra
 LDFLAGS := -L/usr/local/cuda/lib64
 LDLIBS := -lcudart -lcublas
 
-MODEL_PATH ?= model.safetensors
+MODEL_PATH ?= models/Llama-3.2-1B-Instruct/model.safetensors
 
 $(TARGET): $(OBJ)
 	mkdir -p build

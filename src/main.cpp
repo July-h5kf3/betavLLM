@@ -41,7 +41,7 @@ int main(int argc, char** argv)
     if(argc < 2)
     {
         std::cerr << "Usage: " << argv[0] << " <model.safetensors>\n";
-        retrun 1;
+        return 1;
     }
 
     std::string model_path = argv[1];
