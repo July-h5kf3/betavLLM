@@ -2,4 +2,5 @@ alpha/
 .venv/
 build/
 cmake-build-*/
+models/
 .DS_Store

@@ -1,10 +1,14 @@
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
 #include <queue>
+#include <iostream>
 #define JSON_USE_IMPLICIT_CONVERSIONS 0
 #include "json.hpp"
 
 using json = nlohmann::json;
+
+constexpr int B_TO_MB = 1024 * 1024;
+constexpr int  B_TO_GB = 1024 * 1024 * 1024;
 
 int checkGPUStatus()
 {
