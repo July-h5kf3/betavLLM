@@ -10,6 +10,10 @@
 #include "model_loader.hpp"
 
 #include "tokenizer.hpp"
+#include "input_ids.hpp"
+#include "activation_buffer.hpp"
+
+#include "layers/embedding.hpp"
 
 
 
@@ -66,6 +70,22 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    betavllm::HFTokenizer tokenizer("models/Llama-3.2-1B-Instruct");
+    betavllm::HFTokenizer tokenizer(model_dir);
+
+    std::string prompt = "Hello world!";
+    betavllm::InputIds input_ids(tokenizer.encode(prompt));
+    betavllm::ActivationBuffer hidden_state(input_ids.num_tokens,DIM);
+
+    betavllm::embeddingGather(
+        input_ids,
+        weights.embed_tokens,
+        hidden_state,
+    )
+    if(DEBUG)
+    std::cout << "[DEBUG] Embedding gather finished. tokens="
+          << input_ids.num_tokens
+          << ", hidden_size="
+          << activations.hidden_size
+          << "\n";
     return 0;
 }
