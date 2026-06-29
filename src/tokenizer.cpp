@@ -2,29 +2,51 @@
 
 #include <fstream>
 #include <sstream>
+#include <iostream>
 #include <stdexcept>
 
 #include "tokenizers_cpp.h"
 
+#include "model_config.hpp"
 namespace betavllm 
 {
     static std::string readFile(const std::string& path)
     {
         std::ifstream file(path, std::ios::binary);
-        std::ostream buffer;
+        if (!file)
+        {
+            throw std::runtime_error("Failed to open tokenizer file: " + path);
+        }
+
+        std::ostringstream buffer;
         buffer << file.rdbuf();
         return buffer.str();
     }
+
     HFTokenizer::HFTokenizer(const std::string& model_dir)
     {
-        std::string tokenizer_path = model_dir + "/tokenizeer.json";
+        std::string tokenizer_path = model_dir + "/tokenizer.json";
         std::string blob = readFile(tokenizer_path);
         tokenizer_ = tokenizers::Tokenizer::FromBlobJSON(blob);
         if (!tokenizer_)
         {
             throw std::runtime_error("Failed to load!");
         }
+        if(DEBUG)
+        {
+            auto ids = tokenizer_->Encode("Hello, world!");
+            std::cout<<"[DEBUG] ";
+            for(auto id : ids)
+            {
+                std::cout<< id << " ";
+            }
+            std::cout<<"\n[DEBUG] ";
+            std::cout << tokenizer_->Decode(ids) << "\n";
+            std::cout << "[DEBUG] vocab size: " << tokenizer_->GetVocabSize() << "\n";
+        }
     }
+
+    HFTokenizer::~HFTokenizer() = default;
 
     std::vector<int32_t> HFTokenizer::encode(const std::string& text) const
     {

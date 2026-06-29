@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <cstdint>
 #include <string>
 #include <vector>
 
@@ -14,6 +15,7 @@ class HFTokenizer
 {
     public:
         explicit HFTokenizer(const std::string& model_dir);
+        ~HFTokenizer();
         std::vector<int32_t> encode(const std::string& text) const;
         std::string decode(const std::vector<int32_t>& ids) const;
         

@@ -22,11 +22,12 @@ struct Weights
     __nv_bfloat16 *norm;
 };
 
-int loadWeights(const std::string& model_path , Weights &weights)
+int loadWeights(const std::string& model_dir , Weights &weights)
 {
     /*
         这里先暂时硬编码为Llama3.2的权重地址，后续可以改为args参数
     */
+    std::string model_path = model_dir + "/model.safetensors";
     std::ifstream safetensors_file(model_path,std::ios_base::binary);
     if(!safetensors_file.is_open())
     {

@@ -42,11 +42,11 @@ int main(int argc, char** argv)
 {
     if(argc < 2)
     {
-        std::cerr << "Usage: " << argv[0] << " <model.safetensors>\n";
+        std::cerr << "Usage: " << argv[0] << " <model dir>\n";
         return 1;
     }
 
-    std::string model_path = argv[1];
+    std::string model_dir = argv[1];
     if(checkGPUStatus() != 0)
     {
         return 1;
@@ -60,23 +60,12 @@ int main(int argc, char** argv)
     }
     //Load Weight Begin!
     Weights weights;
-    if(loadWeights(model_path, weights) != 0)
+    if(loadWeights(model_dir, weights) != 0)
     {
         std::cerr<<"Load Weights failed \n";
         return 1;
     }
 
     betavllm::HFTokenizer tokenizer("models/Llama-3.2-1B-Instruct");
-    auto ids = tokenizer.encode("Hello, world!");
-    for(auto id : ids)
-    {
-        std::cout<< id << " ";
-    }
-    std::cout<<"\n";
-    std::cout << tokenizer.decode(ids) << "\n";
-    std::cout << "vocab size: " << tokenizer.vocab_size() << "\n";
-    std::cout << "bos: " << tokenizer.bos_id() << "\n";
-    std::cout << "eos: " << tokenizer.eos_id() << "\n";
-    std::cout << "eot: " << tokenizer.eot_id() << "\n";
     return 0;
 }
