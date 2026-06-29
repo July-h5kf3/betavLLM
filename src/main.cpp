@@ -9,6 +9,8 @@
 
 #include "model_loader.hpp"
 
+#include "tokenizer.hpp"
+
 
 
 int checkGPUStatus()
@@ -56,11 +58,25 @@ int main(int argc, char** argv)
         std::cerr << "cuBLAS init failed, status: " << status << "\n";
         return 1;
     }
+    //Load Weight Begin!
     Weights weights;
     if(loadWeights(model_path, weights) != 0)
     {
         std::cerr<<"Load Weights failed \n";
         return 1;
     }
+
+    betavllm::HFTokenizer tokenizer("models/Llama-3.2-1B-Instruct");
+    auto ids = tokenizer.encode("Hello, world!");
+    for(auto id : ids)
+    {
+        std::cout<< id << " ";
+    }
+    std::cout<<"\n";
+    std::cout << tokenizer.decode(ids) << "\n";
+    std::cout << "vocab size: " << tokenizer.vocab_size() << "\n";
+    std::cout << "bos: " << tokenizer.bos_id() << "\n";
+    std::cout << "eos: " << tokenizer.eos_id() << "\n";
+    std::cout << "eot: " << tokenizer.eot_id() << "\n";
     return 0;
 }
