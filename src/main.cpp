@@ -79,13 +79,13 @@ int main(int argc, char** argv)
     betavllm::embeddingGather(
         input_ids,
         weights.embed_tokens,
-        hidden_state,
-    )
+        hidden_state
+    );
     if(DEBUG)
     std::cout << "[DEBUG] Embedding gather finished. tokens="
           << input_ids.num_tokens
           << ", hidden_size="
-          << activations.hidden_size
+          << hidden_state.hidden_size
           << "\n";
     return 0;
 }
