@@ -1,11 +1,19 @@
+#pragma once
+
+#include <cuda_bf16.h>
 #include <cuda_runtime.h>
 #include <cublas_v2.h>
+#include <algorithm>
+#include <cstdint>
 #include <fstream>
+#include <iostream>
+#include <string>
+#include <unordered_map>
+#include <vector>
 #include "model_config.hpp"
 #include "json.hpp"
 
 using json = nlohmann::json;
-#pragma once
 
 struct Weights
 {

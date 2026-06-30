@@ -30,20 +30,34 @@ endif()
 
 add_subdirectory(third_party/tokenizers-cpp)
 
-add_executable(betavllm
-    src/main.cpp
+add_library(betavllm_core STATIC
     src/tokenizer.cpp
     src/input_ids.cpp
     src/activation_buffer.cpp
     src/layers/embedding.cu
+    src/layers/rmsnorm.cu
 )
 
-target_include_directories(betavllm PRIVATE
+target_include_directories(betavllm_core PUBLIC
     include
 )
 
-target_link_libraries(betavllm PRIVATE
+target_link_libraries(betavllm_core PUBLIC
     CUDA::cudart
     CUDA::cublas
     tokenizers_cpp
 )
+
+add_executable(betavllm
+    src/main.cpp
+)
+
+target_link_libraries(betavllm PRIVATE
+    betavllm_core
+)
+
+option(BUILD_BETAVLLM_TESTS "Build betaVLLM test executables" ON)
+if(BUILD_BETAVLLM_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
