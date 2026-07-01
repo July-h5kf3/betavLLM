@@ -4,3 +4,4 @@ build/
 cmake-build-*/
 models/
 .DS_Store
+ncu_reports/*
