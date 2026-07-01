@@ -21,11 +21,20 @@ __global__ void rmsNormKernel(
 )
 {
     __shared__ float warp_sums[32];
+    __shared__ __nv_bfloat162 input_cache[1024];
     float sum = 0.0;
-    for(int offset = threadIdx.x;offset < hidden_size;offset += blockDim.x)
+
+    const __nv_bfloat162* input2 = reinterpret_cast<const __nv_bfloat162*>(input + blockIdx.x * hidden_size);
+    const __nv_bfloat162* weight2 = reinterpret_cast<const __nv_bfloat162*>(weight);
+    __nv_bfloat162* output2 = reinterpret_cast<__nv_bfloat162*>(output + blockIdx.x * hidden_size);
+
+    for(int offset = threadIdx.x;offset < hidden_size / 2;offset += blockDim.x)
     {
-        float x = __bfloat162float(input[blockIdx.x * hidden_size + offset]);
-        sum += x * x;
+        const __nv_bfloat162 x2 = input2[offset];
+
+        const float2 x = __bfloat1622float2(x2);
+        input_cache[offset] = x2;
+        sum += x.x * x.x + x.y * x.y;
     }
     sum = warpReduceSum(sum);
     
@@ -48,11 +57,16 @@ __global__ void rmsNormKernel(
    }
    __syncthreads();
    const float inv_rms = warp_sums[0];
-   for(int  offset = threadIdx.x;offset < hidden_size;offset += blockDim.x)
+   for(int  offset = threadIdx.x;offset < hidden_size / 2;offset += blockDim.x)
    {
-    float x = __bfloat162float(input[blockIdx.x * hidden_size + offset]);
-    float w = __bfloat162float(weight[offset]);
-    output[blockIdx.x * hidden_size + offset] = __float2bfloat16(x * inv_rms * w);
+    const __nv_bfloat162 x2 = input_cache[offset];
+    const __nv_bfloat162 w2 = weight2[offset];
+
+    const float2 x = __bfloat1622float2(x2);
+    const float2 w = __bfloat1622float2(w2);
+    output2[offset] = __floats2bfloat162_rn(
+            x.x * inv_rms * w.x,
+            x.y * inv_rms * w.y);
    }
 }
 }

@@ -58,7 +58,10 @@ int main()
     {
         constexpr int num_tokens = 256;
         constexpr int hidden_size = 2048;
-        constexpr int iterations = 100;
+        constexpr int cpu_iterations = 100;
+        constexpr int gpu_warmup_iterations = 100;
+        constexpr int gpu_iterations_per_sample = 100;
+        constexpr int gpu_samples = 20;
         constexpr float tolerance = 2.5e-2f;
 
         std::mt19937 rng(5678);
@@ -78,7 +81,7 @@ int main()
 
         std::vector<float> expected(num_tokens * hidden_size);
         auto cpu_start = std::chrono::high_resolution_clock::now();
-        for (int iter = 0; iter < iterations; ++iter)
+        for (int iter = 0; iter < cpu_iterations; ++iter)
         {
             cpuRmsNorm(input, weight, expected, num_tokens, hidden_size);
         }
@@ -108,20 +111,35 @@ int main()
         checkCuda(cudaEventCreate(&start), "cudaEventCreate start failed");
         checkCuda(cudaEventCreate(&stop), "cudaEventCreate stop failed");
 
-        betavllm::rmsNorm(gpu_input, gpu_weight, gpu_output);
-        checkCuda(cudaGetLastError(), "rmsNorm warmup launch failed");
-        checkCuda(cudaDeviceSynchronize(), "rmsNorm warmup sync failed");
-
-        checkCuda(cudaEventRecord(start), "cudaEventRecord start failed");
-        for (int iter = 0; iter < iterations; ++iter)
+        for (int iter = 0; iter < gpu_warmup_iterations; ++iter)
         {
             betavllm::rmsNorm(gpu_input, gpu_weight, gpu_output);
         }
-        checkCuda(cudaEventRecord(stop), "cudaEventRecord stop failed");
-        checkCuda(cudaEventSynchronize(stop), "cudaEventSynchronize stop failed");
+        checkCuda(cudaGetLastError(), "rmsNorm warmup launch failed");
+        checkCuda(cudaDeviceSynchronize(), "rmsNorm warmup sync failed");
 
-        float gpu_ms = 0.0f;
-        checkCuda(cudaEventElapsedTime(&gpu_ms, start, stop), "cudaEventElapsedTime failed");
+        std::vector<float> gpu_sample_ms;
+        gpu_sample_ms.reserve(gpu_samples);
+        for (int sample = 0; sample < gpu_samples; ++sample)
+        {
+            checkCuda(cudaEventRecord(start), "cudaEventRecord start failed");
+            for (int iter = 0; iter < gpu_iterations_per_sample; ++iter)
+            {
+                betavllm::rmsNorm(gpu_input, gpu_weight, gpu_output);
+            }
+            checkCuda(cudaEventRecord(stop), "cudaEventRecord stop failed");
+            checkCuda(cudaEventSynchronize(stop), "cudaEventSynchronize stop failed");
+
+            float sample_ms = 0.0f;
+            checkCuda(cudaEventElapsedTime(&sample_ms, start, stop),
+                      "cudaEventElapsedTime failed");
+            gpu_sample_ms.push_back(sample_ms);
+        }
+
+        std::vector<float> sorted_gpu_sample_ms = gpu_sample_ms;
+        std::sort(sorted_gpu_sample_ms.begin(), sorted_gpu_sample_ms.end());
+        const float gpu_ms_best = sorted_gpu_sample_ms.front();
+        const float gpu_ms_median = sorted_gpu_sample_ms[gpu_samples / 2];
 
         std::vector<__nv_bfloat16> actual_bf16(input.size());
         checkCuda(cudaMemcpy(actual_bf16.data(),
@@ -142,13 +160,25 @@ int main()
         checkCuda(cudaFree(gpu_weight), "cudaFree weight failed");
 
         const bool correct = max_abs_error <= tolerance;
-        const double speedup = gpu_ms > 0.0f ? cpu_ms / static_cast<double>(gpu_ms) : 0.0;
+        const double cpu_us_per_iter = cpu_ms * 1000.0 / cpu_iterations;
+        const double gpu_us_per_iter_best =
+            gpu_ms_best * 1000.0 / gpu_iterations_per_sample;
+        const double gpu_us_per_iter_median =
+            gpu_ms_median * 1000.0 / gpu_iterations_per_sample;
+        const double speedup =
+            gpu_us_per_iter_best > 0.0 ? cpu_us_per_iter / gpu_us_per_iter_best : 0.0;
         std::cout << "rmsnorm_kernel correctness: "
                   << betavllm::test::passFail(correct) << "\n";
         std::cout << "max_abs_error: " << max_abs_error << "\n";
         std::cout << "tolerance: " << tolerance << "\n";
+        std::cout << "gpu_samples: " << gpu_samples << "\n";
+        std::cout << "gpu_iterations_per_sample: " << gpu_iterations_per_sample << "\n";
         std::cout << "cpu_ms: " << cpu_ms << "\n";
-        std::cout << "gpu_ms: " << gpu_ms << "\n";
+        std::cout << "cpu_us_per_iter: " << cpu_us_per_iter << "\n";
+        std::cout << "gpu_ms_best: " << gpu_ms_best << "\n";
+        std::cout << "gpu_ms_median: " << gpu_ms_median << "\n";
+        std::cout << "gpu_us_per_iter_best: " << gpu_us_per_iter_best << "\n";
+        std::cout << "gpu_us_per_iter_median: " << gpu_us_per_iter_median << "\n";
         std::cout << "speedup: " << betavllm::test::speedup(speedup) << "\n";
 
         return correct ? 0 : 1;
